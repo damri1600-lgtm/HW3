@@ -1,0 +1,40 @@
+import pulp
+
+# הגדרת מודל הבעיה למקסימום
+prob = pulp.LpProblem("Suppliers_Consumers_Max_Flow", pulp.LpMaximize)
+
+# הגדרת הקשתות הקיימות בגרף
+edges = [
+    ('u1', 'v1'), ('u1', 'v2'), ('u1', 'v4'),
+    ('u2', 'v2'), ('u2', 'v5'),
+    ('u3', 'v3'), ('u3', 'v5'),
+    ('u4', 'v2'), ('u4', 'v5')
+]
+
+# משתני ההחלטה (x_ij >= 0)
+x = pulp.LpVariable.dicts("flow", edges, lowBound=0)
+
+# פונקציית המטרה: סכום כל הזרימות
+prob += pulp.lpSum([x[e] for e in edges]), "Total_Flow"
+
+# אילוצי קיבולת ספקים (a_i)
+prob += x[('u1', 'v1')] + x[('u1', 'v2')] + x[('u1', 'v4')] <= 3.5, "Cap_u1"
+prob += x[('u2', 'v2')] + x[('u2', 'v5')] <= 2.0, "Cap_u2"
+prob += x[('u3', 'v3')] + x[('u3', 'v5')] <= 4.0, "Cap_u3"
+prob += x[('u4', 'v2')] + x[('u4', 'v5')] <= 1.5, "Cap_u4"
+
+# אילוצי דרישת צרכנים (b_j)
+prob += x[('u1', 'v1')] <= 2.5, "Dem_v1"
+prob += x[('u1', 'v2')] + x[('u2', 'v2')] + x[('u4', 'v2')] <= 3.0, "Dem_v2"
+prob += x[('u3', 'v3')] <= 2.0, "Dem_v3"
+prob += x[('u1', 'v4')] <= 1.5, "Dem_v4"
+prob += x[('u2', 'v5')] + x[('u3', 'v5')] + x[('u4', 'v5')] <= 2.0, "Dem_v5"
+
+# פתרון התוכנית
+prob.solve()
+
+# הדפסת התוצאות
+print("Status:", pulp.LpStatus[prob.status])
+for var in prob.variables():
+    print(f"{var.name} = {var.varValue}")
+print("Total Items Supplied =", pulp.value(prob.objective))
